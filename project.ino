@@ -5,7 +5,6 @@ LedControl lc=LedControl(12,11,10,1);  // Pins: DIN,CLK,CS, # of Display connect
 unsigned long delayTime=100;  // Delay between Frames
 boolean running=true; // If windmill should stop
 boolean right=false; // Spinning in right, when false spinning in left
-//boolean velocityChanging=true; // If velocity is changing to input read
 unsigned short velocity=0;  // Rotation velocity (rounds per 10s)
 unsigned short rounds=4; // Number of rounds left
 unsigned short roundsInput=4;
