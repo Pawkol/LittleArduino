@@ -213,9 +213,25 @@ void setup()
   lc.clearDisplay(0);  // Clear Displays
 }
 
+/**
+ * Idea for final loop:
+ * 1. Parse Input - set integer variables and boolean variable if user 
+ *    sended S, or decidef to start or stop spinning, if user decided to
+ *    stop spinning, set number of spins to top and boolean variable for stop
+ *    spinning if user decided to start spinning, then set variable and set
+ *    number of spins to zero
+ * 2. Start spinning - if user decided to stop spinning or sended S, then
+ *    do nothing, else looking for direction and number of spins, call function 
+ *    startSpining(), where program set velocity to top level with acceleration 
+ *    effect
+ * 3. If number of spins is enough little and user does not sended S or decided 
+ *    to stop, call function oneSpin, with change number of done spins
+ * 4. If number of spins is equal to top number of spins or user sended
+ *    S or decided to stop spinning, then call function stopSpinning(), 
+ *    with change number of spins to zero
+ */
 void loop()
 {
-
   
   //Windmill animation
   if (Serial.available() > 0) {
