@@ -2,6 +2,8 @@
 
 LedControl lc=LedControl(12,11,10,1);  // Pins: DIN,CLK,CS, # of Display connected
 
+/*-------------- Spinning control data ---------------*/
+
 unsigned long delayTime=100;  // Delay between Frames
 boolean running=true; // If windmill should stop
 boolean right=false; // Spinning in right, when false spinning in left
@@ -17,7 +19,7 @@ unsigned short frame=0;
 unsigned short velocityToFlush=0;
 unsigned short roundsToFlush=0;
 
-// Windmill animation frames
+/*--------- Windmill animation frames data ----------- */
 
 byte a1[]=
 {
@@ -234,7 +236,7 @@ byte windmill5[]=
     B01100111,
     B01100000
 };
-
+/*
 byte* framesR1[]=
 {
   windmill0,
@@ -250,36 +252,110 @@ byte* framesL1[]=
   windmill2,
   windmill5
 };
-
+*/
 byte* framesR[]=
 {
-  a1,
-  a2,
-  a3,
-  a4,
-  a5,
-  a6,
-  a7,
-  a8,
-  a9,
-  a10,
-  a11,
-  a12
+  a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12
 };
 
 byte* framesL[]=
 {
-  a1,
-  a12,
-  a11,
-  a10,
-  a9,a8,a7,a6,a5,a4,a3,a2
+  a1,a12,a11,a10,a9,a8,a7,a6,a5,a4,a3,a2
 };
 
+/*-----------Functions for parsing----------------*/
 
+/**
+ * Check if sended string is correct formated integer value representation.
+ */
+boolean checkIfNumber(String lineToCheck) {
+   for(byte i = 0; i < lineToCheck.length(); ++i)
+   {
+     Serial.print("Dostałem ");
+     Serial.print(lineToCheck.charAt(i));
+     if(lineToCheck.charAt(i) < '0' || lineToCheck.charAt(i) > '9')
+      return false;
+   }
+   return true;
+}
 
+/**
+ * Sets changes derivered earlier by serial input.
+ */
+void flushNumbers() {
+  velocityTarget=velocityToFlush;
+  roundsInput=roundsToFlush;
+}
 
+/**
+ * Function parse serial String line derived in argument and introduce sended
+ * changes in case of wrong input format informs user using serial. Serial line
+ * must be send without line ending character.
+*/
+void parseInput(String input) {
+  if(input[0]=='P')
+  {
+    if(input[1]=='1')
+    {
+      Serial.print("Starting spinning...\n");
+      velocityChange=velocityTarget;
+      running=true;
+    }
+    if(input[1]=='0')
+    {
+      Serial.print("Stopping spinning...\n");
+      velocityChange=0;
+      running=false;
+    }
+    else
+    {
+      Serial.print("Wrong input, you can send P0 or P1\n");
+    }
+  }
+  else if(input[0]=='R'&&input[1]=='E'&&input[2]=='V')
+  {
+    if(input.length() >= 6 && checkIfNumber(input.substring(3)))
+    {
+      velocityToFlush=input.substring(3).toInt();
+      Serial.print("Input velocity ");
+      Serial.println(input.substring(3));
+    }
+    else
+    {
+      Serial.println("Wrong input format, must be REV..., where ... are all digits");
+    }
+  }
+  else if(input[0]=='N')
+  {
+    if(input.length() == 3 && checkIfNumber(input.substring(1)))
+    {
+      roundsToFlush=input.substring(1).toInt();
+      Serial.print("Input rounds ");
+      Serial.println(input.substring(1));
+    }
+    else
+    {
+      Serial.println("Wrong input format, must be N.., where .. are all digits");
+    }
+  }
+  else if(input[0]<='S')
+  {
+    flushNumbers();
+    Serial.println("Flushing...");
+  }
+  else
+  {
+    Serial.print("Incorrect command:");
+    Serial.println(  roundsToFlush);
+    Serial.println("  Correct command are:");
+    Serial.println("  REV..., where ... - digits");
+    Serial.println("  N.., where .. - digits");
+    Serial.println("  P., where . is 0 or 1");
+    Serial.println("  S");
+  }
+}
 
+/*-----------Functions for animation and loop----------------*/
 
 //  Take values in Arrays and Display them
 void setDisplay(byte img[]){
@@ -287,37 +363,6 @@ void setDisplay(byte img[]){
   {
     lc.setRow(0,i,img[i]);
   }
-}
-
-void parseInput(String input){
-  if(input[0]=='P'){
-    if(input[1]=='1'){
-      Serial.print("Starting spinning...\n");
-      velocityChange=velocityTarget;
-      running=true;
-    }
-    if(input[1]=='0'){
-      Serial.print("Stopping spinning...\n");
-      velocityChange=0;
-      running=false;
-    }
-  }else if(input[0]=='R'&&input[1]=='E'&&input[2]=='V'){
-    velocityToFlush=input.substring(3).toInt();
-    Serial.print("Input velocity ");
-    Serial.println(velocityToFlush);
-  }else if(input[0]=='N'){
-    roundsToFlush=input.substring(1).toInt();
-    Serial.print("Input rounds ");
-    Serial.println(roundsToFlush);
-  }else if(input[0]=='S'){
-    flushNumbers();
-    Serial.println("Flushing...");
-  }
-}
-
-void flushNumbers(){
-  velocityTarget=velocityToFlush;
-  roundsInput=roundsToFlush;
 }
 
 void nextFrame(){
