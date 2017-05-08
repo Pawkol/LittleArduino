@@ -5,18 +5,163 @@ LedControl lc=LedControl(12,11,10,1);  // Pins: DIN,CLK,CS, # of Display connect
 unsigned long delayTime=100;  // Delay between Frames
 boolean running=true; // If windmill should stop
 boolean right=false; // Spinning in right, when false spinning in left
+//boolean velocityChanging=true; // If velocity is changing to input read
 unsigned short velocity=0;  // Rotation velocity (rounds per 10s)
-unsigned short rounds=4; // Number of rounds left
+unsigned short rounds=40; // Number of rounds left
 unsigned short roundsInput=4;
-unsigned short velocityChange=10;
-unsigned short velocityTarget=10;
+unsigned short velocityChange=100;
+unsigned short velocityTarget=100;
 unsigned short velocityStep=1;
-unsigned short framesNumber=4;
+unsigned short framesNumber=12;
 unsigned short frame=0;
 unsigned short velocityToFlush=0;
 unsigned short roundsToFlush=0;
 
 // Windmill animation frames
+
+byte a1[]=
+{
+    B00011000,
+    B00011000,
+    B00011000,
+    B00011000,
+    B00011000,
+    B00011000,
+    B00011000,
+    B00011000
+};
+
+byte a2[]=
+{
+    B00100000,
+    B00010000,
+    B00010000,
+    B00011000,
+    B00011000,
+    B00001000,
+    B00001000,
+    B00000100
+};
+
+byte a3[]=
+{
+    B01000000,
+    B00100000,
+    B00100000,
+    B00011000,
+    B00011000,
+    B00000100,
+    B00000100,
+    B00000010
+};
+
+byte a4[]=
+{
+    B10000000,
+    B01000000,
+    B00100000,
+    B00011000,
+    B00011000,
+    B00000100,
+    B00000010,
+    B00000001
+};
+
+byte a5[]=
+{
+    B00000000,
+    B10000000,
+    B01100000,
+    B00011000,
+    B00011000,
+    B00000110,
+    B00000001,
+    B00000000
+};
+
+byte a6[]=
+{
+    B00000000,
+    B00000000,
+    B10000000,
+    B01111000,
+    B00011110,
+    B00000001,
+    B00000000,
+    B00000000
+};
+
+byte a7[]=
+{
+    B00000000,
+    B00000000,
+    B00000000,
+    B11111111,
+    B11111111,
+    B00000000,
+    B00000000,
+    B00000000
+};
+
+byte a8[]=
+{
+    B00000000,
+    B00000000,
+    B00000001,
+    B00011110,
+    B01111000,
+    B10000000,
+    B00000000,
+    B00000000
+};
+
+byte a9[]=
+{
+    B00000000,
+    B00000001,
+    B00000110,
+    B00011000,
+    B00011000,
+    B01100000,
+    B10000000,
+    B00000000
+};
+
+byte a10[]=
+{
+    B00000001,
+    B00000010,
+    B00000100,
+    B00011000,
+    B00011000,
+    B00100000,
+    B01000000,
+    B10000000
+};
+
+byte a11[]=
+{
+    B00000010,
+    B00000100,
+    B00000100,
+    B00011000,
+    B00011000,
+    B00100000,
+    B00100000,
+    B01000000
+};
+
+byte a12[]=
+{
+    B00000100,
+    B00001000,
+    B00001000,
+    B00011000,
+    B00011000,
+    B00010000,
+    B00010000,
+    B00100000
+};
 
 byte windmill0[]=
 {
@@ -90,7 +235,7 @@ byte windmill5[]=
     B01100000
 };
 
-byte* framesR[]=
+byte* framesR1[]=
 {
   windmill0,
   windmill1,
@@ -98,12 +243,37 @@ byte* framesR[]=
   windmill3
 };
 
-byte* framesL[]=
+byte* framesL1[]=
 {
   windmill0,
   windmill4,
   windmill2,
   windmill5
+};
+
+byte* framesR[]=
+{
+  a1,
+  a2,
+  a3,
+  a4,
+  a5,
+  a6,
+  a7,
+  a8,
+  a9,
+  a10,
+  a11,
+  a12
+};
+
+byte* framesL[]=
+{
+  a1,
+  a12,
+  a11,
+  a10,
+  a9,a8,a7,a6,a5,a4,a3,a2
 };
 
 
@@ -209,29 +379,13 @@ void setup()
 {
   Serial.begin(9600); 
   lc.shutdown(0,false);  // Wake up displays
-  lc.setIntensity(0,5);  // Set intensity levels
+  lc.setIntensity(0,2);  // Set intensity levels
   lc.clearDisplay(0);  // Clear Displays
 }
 
-/**
- * Idea for final loop:
- * 1. Parse Input - set integer variables and boolean variable if user 
- *    sended S, or decidef to start or stop spinning, if user decided to
- *    stop spinning, set number of spins to top and boolean variable for stop
- *    spinning if user decided to start spinning, then set variable and set
- *    number of spins to zero
- * 2. Start spinning - if user decided to stop spinning or sended S, then
- *    do nothing, else looking for direction and number of spins, call function 
- *    startSpining(), where program set velocity to top level with acceleration 
- *    effect
- * 3. If number of spins is enough little and user does not sended S or decided 
- *    to stop, call function oneSpin, with change number of done spins
- * 4. If number of spins is equal to top number of spins or user sended
- *    S or decided to stop spinning, then call function stopSpinning(), 
- *    with change number of spins to zero
- */
 void loop()
 {
+
   
   //Windmill animation
   if (Serial.available() > 0) {
