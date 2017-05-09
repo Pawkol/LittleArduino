@@ -1,23 +1,22 @@
 #include "LedControl.h"
 
-LedControl lc=LedControl(12,11,10,1);  // Pins: DIN,CLK,CS, # of Display connected
-
 /*-------------- Spinning control data ---------------*/
 
-unsigned long delayTime=100;  // Delay between Frames
-boolean running=true; // If windmill should stop
-boolean right=false; // Spinning in right, when false spinning in left
-//boolean velocityChanging=true; // If velocity is changing to input read
-unsigned short velocity=0;  // Rotation velocity (rounds per 10s)
-unsigned short rounds=40; // Number of rounds left
-unsigned short roundsInput=4;
-unsigned short velocityChange=100;
-unsigned short velocityTarget=100;
-unsigned short velocityStep=1;
-unsigned short framesNumber=12;
-unsigned short frame=0;
-unsigned short velocityToFlush=0;
-unsigned short roundsToFlush=0;
+LedControl lc = LedControl(12,11,10,1);  // Pins: DIN,CLK,CS of Display connected
+unsigned long delayTime = 100;  // Initial delay between Frames
+boolean running = true; // If windmill should stop
+boolean right = false; // Spinning in right, when false spinning in left
+//boolean velocityChanging = true; // If velocity is changing to input read
+unsigned short velocity = 0;  // Rotation velocity (rounds per 10s)
+unsigned short rounds = 10; // Initial number of rounds
+unsigned short roundsInput = 10; // Initial number of rounds from input
+unsigned short velocityChange = 100; // Initial value of variable for velocity windmill current is going to reach
+unsigned short velocityTarget = 100; // Initial value of top value of velocity
+unsigned short velocityStep = 1; // Value of acceleration
+unsigned short framesNumber = 12; // Number of LED display possible states
+unsigned short frame = 0; // Initial value of frames index
+unsigned short velocityToFlush = 100; // Initial value of variable holds user decision about top velocity
+unsigned short roundsToFlush = 10; // Initial value of variable holds user decision about number of rounds
 
 /*--------- Windmill animation frames data ----------- */
 
@@ -165,93 +164,6 @@ byte a12[]=
     B00100000
 };
 
-byte windmill0[]=
-{
-    B00011000,
-    B00011000,
-    B00011000,
-    B11100111,
-    B11100111,
-    B00011000,
-    B00011000,
-    B00011000
-};
-
-byte windmill1[]=
-{
-    B00001100,
-    B00011100,
-    B11011000,
-    B11100110,
-    B01100111,
-    B00011011,
-    B00111000,
-    B00110000
-};
-
-byte windmill2[]=
-{
-    B11000011,
-    B11100111,
-    B01111110,
-    B00100100,
-    B00100100,
-    B01111110,
-    B11100111,
-    B11000011
-};
-
-byte windmill3[]=
-{
-    B01100000,
-    B01100111,
-    B01111111,
-    B00100100,
-    B00100100,
-    B11111110,
-    B11100110,
-    B00000110
-};
-
-byte windmill4[]=
-{
-    B00110000,
-    B00111000,
-    B00011011,
-    B01100111,
-    B11100110,
-    B11011000,
-    B00011100,
-    B00001100
-};
-
-byte windmill5[]=
-{
-    B00000110,
-    B11100110,
-    B11111110,
-    B00100100,
-    B00100100,
-    B01111111,
-    B01100111,
-    B01100000
-};
-/*
-byte* framesR1[]=
-{
-  windmill0,
-  windmill1,
-  windmill2,
-  windmill3
-};
-byte* framesL1[]=
-{
-  windmill0,
-  windmill4,
-  windmill2,
-  windmill5
-};
-*/
 byte* framesR[]=
 {
   a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12
@@ -269,12 +181,8 @@ byte* framesL[]=
  */
 boolean checkIfNumber(String lineToCheck) {
    for(byte i = 0; i < lineToCheck.length(); ++i)
-   {
-     Serial.print("Dostałem ");
-     Serial.print(lineToCheck.charAt(i));
      if(lineToCheck.charAt(i) < '0' || lineToCheck.charAt(i) > '9')
       return false;
-   }
    return true;
 }
 
@@ -341,6 +249,8 @@ void parseInput(String input) {
   {
     flushNumbers();
     Serial.println("Flushing...");
+    velocityChange=0;
+    rounds = 0;
   }
   else
   {
@@ -357,36 +267,79 @@ void parseInput(String input) {
 /*-----------Functions for animation and loop----------------*/
 
 /**
- * Take values in Arrays and Display them
+ * Take values in Arrays and Display them.
  */
-void setDisplay(byte img[]){
-  for (int i = 0; i < 8; i++)
+void setDisplay(byte img[]) {
+  for(int i = 0; i < 8; i++)
   {
     lc.setRow(0,i,img[i]);
   }
 }
 
+/**
+ * Proceed one frame of animation using direction variable
+ * to specify good table of LED's states, after sets delay
+ * time using variable delayTime.
+ */
+void dispFrame() {
+  if(right)
+  {
+    setDisplay(framesR[frame]);
+  }
+  else
+  {
+    setDisplay(framesL[frame]);
+  }
+  delay(delayTime);
+}
 
-void nextFrame(){
-  if(velocity!=0){
-    if(frame==framesNumber-1){
-      frame=0;
-      if(velocity==velocityChange){
-        rounds--;
-      }
-    }else{
-      frame++;
-    }
+/**
+ * Compare values of actual velocity and velocityChange, with holds value
+ * that will is going to reach. Velocity raise of fall in constans acceleration
+ * value. After changing value, there is also check if velocity does not get out
+ * of the borders if so, the velocityChange is set.
+ */
+void changeVelocity() {
+  if(velocity>velocityChange)
+  {
+    velocity=velocity-velocityStep;
+    if(velocity < 0)
+      velocity = 0;
+  }
+  else if(velocity<velocityChange)
+  {
+    velocity=velocity+velocityStep;
+    if(velocity > velocityChange)
+      velocity = velocityChange;
   }
 }
 
+/**
+ * During spinning set new value of delayTime variable according to
+ * actual value of willmill velocity and number of animation frames.
+ */
+void changeDelay() {
+  if(velocity!=0)
+  {
+    unsigned long newDelay;
+    newDelay=(unsigned long)1000/velocity*framesNumber;
+    delayTime=newDelay;
+  }
+}
 
-void changeDirection(){
-  if(rounds==0){
-    // Stop if no more rounds to go
+/**
+ * In case of all rounds done, change velocityChange value to so,
+ * willmill will going to stop spinning after this action, also if
+ * velocity is already 0 and willmill is still running, function
+ * changes direction to opposite boolean value, set number of rounds
+ * to number from input and velocityChange to number from input.
+ */
+void changeDirection() {
+  if(rounds == 0)
+  {
     velocityChange=0;
-    if(velocity==0&&running){
-      // Change direction of spin
+    if(velocity == 0 && running)
+    {
       velocityChange=velocityTarget;
       rounds=roundsInput;
       right=!right;
@@ -394,36 +347,25 @@ void changeDirection(){
   }
 }
 
-
-void changeDelay(){
-  if(velocity!=0){
-    unsigned long newDelay;
-    newDelay=(unsigned long)1000/velocity*framesNumber;
-    delayTime=newDelay;
-    
+/**
+ * In case of running willmill, change actual frame index to index
+ * of next correct frame in animation. In case of one complete spin,
+ * decrement number of rounds to do.
+ */
+void nextFrame() {
+  if(velocity!=0)
+  {
+    if(frame==framesNumber-1)
+    {
+      frame=0;
+      if(velocity==velocityChange)
+        rounds--;
+    }
+    else
+    {
+      frame++;
+    }
   }
-}
-
-
-void changeVelocity(){
-  if(velocity>velocityChange){
-    // Slow down
-    velocity=velocity-velocityStep;
-  }else if(velocity<velocityChange){
-    // Speed up
-    velocity=velocity+velocityStep;
-  }
-}
-
-
-void dispFrame(){
-  if(right){
-    setDisplay(framesR[frame]);
-  }else{
-    setDisplay(framesL[frame]);
-  }
-  
-  delay(delayTime);
 }
 
 /**
@@ -450,14 +392,9 @@ void loop()
     parseInput(input);
     
   }
-  
   dispFrame();
-
   changeVelocity();
-  
   changeDelay();
-  
   changeDirection();
-
   nextFrame();
 }
