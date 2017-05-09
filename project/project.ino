@@ -244,7 +244,6 @@ byte* framesR1[]=
   windmill2,
   windmill3
 };
-
 byte* framesL1[]=
 {
   windmill0,
@@ -357,13 +356,16 @@ void parseInput(String input) {
 
 /*-----------Functions for animation and loop----------------*/
 
-//  Take values in Arrays and Display them
+/**
+ * Take values in Arrays and Display them
+ */
 void setDisplay(byte img[]){
   for (int i = 0; i < 8; i++)
   {
     lc.setRow(0,i,img[i]);
   }
 }
+
 
 void nextFrame(){
   if(velocity!=0){
@@ -378,6 +380,7 @@ void nextFrame(){
   }
 }
 
+
 void changeDirection(){
   if(rounds==0){
     // Stop if no more rounds to go
@@ -391,6 +394,7 @@ void changeDirection(){
   }
 }
 
+
 void changeDelay(){
   if(velocity!=0){
     unsigned long newDelay;
@@ -399,6 +403,7 @@ void changeDelay(){
     
   }
 }
+
 
 void changeVelocity(){
   if(velocity>velocityChange){
@@ -410,6 +415,7 @@ void changeVelocity(){
   }
 }
 
+
 void dispFrame(){
   if(right){
     setDisplay(framesR[frame]);
@@ -420,19 +426,25 @@ void dispFrame(){
   delay(delayTime);
 }
 
+/**
+ * Initialize serial connection with 9600 baud, then wake up displays,
+ * sets intensity levels for LED and clear displays for start position.
+ */
 void setup()
 {
-  Serial.begin(9600); 
-  lc.shutdown(0,false);  // Wake up displays
-  lc.setIntensity(0,2);  // Set intensity levels
-  lc.clearDisplay(0);  // Clear Displays
+  Serial.begin(9600);
+  lc.shutdown(0,false);
+  lc.setIntensity(0,2);
+  lc.clearDisplay(0);
 }
 
+/**
+ * Main loop of the program. First it parse data if user sended commands through
+ * serial and tries to parse them if connect change some global variables. Then
+ * starts to display frames and set changes during spinning.
+ */
 void loop()
 {
-
-  
-  //Windmill animation
   if (Serial.available() > 0) {
     String input=Serial.readString();
     parseInput(input);
@@ -440,26 +452,12 @@ void loop()
   }
   
   dispFrame();
-  
 
   changeVelocity();
-
   
   changeDelay();
   
-  
   changeDirection();
-  
 
   nextFrame();
-  
-  /*Serial.print("velo");
-  Serial.print(velocity);
-  Serial.print("\n");
-  
-  Serial.print("delayTime");
-  Serial.print(delayTime);
-  Serial.print("\n");*/
-
-
 }
