@@ -3,16 +3,15 @@
 /*-------------- Spinning control data ---------------*/
 
 LedControl lc = LedControl(12,11,10,1);  // Pins: DIN,CLK,CS of Display connected
-unsigned long delayTime = 100;  // Initial delay between Frames
+unsigned short delayTime = 1000;  // Initial delay between Frames
 boolean running = true; // If windmill should stop
 boolean right = false; // Spinning in right, when false spinning in left
-//boolean velocityChanging = true; // If velocity is changing to input read
 unsigned short velocity = 0;  // Rotation velocity (rounds per 10s)
 unsigned short rounds = 10; // Initial number of rounds
 unsigned short roundsInput = 10; // Initial number of rounds from input
 unsigned short velocityChange = 100; // Initial value of variable for velocity windmill current is going to reach
 unsigned short velocityTarget = 100; // Initial value of top value of velocity
-unsigned short velocityStep = 1; // Value of acceleration
+unsigned short velocityStep = 5; // Value of acceleration
 unsigned short framesNumber = 12; // Number of LED display possible states
 unsigned short frame = 0; // Initial value of frames index
 unsigned short velocityToFlush = 100; // Initial value of variable holds user decision about top velocity
@@ -182,14 +181,6 @@ boolean checkIfNumber(String lineToCheck) {
 }
 
 /**
- * Sets changes derivered earlier by serial input.
- */
-void flushNumbers() {
-  velocityTarget=velocityToFlush;
-  roundsInput=roundsToFlush;
-}
-
-/**
  * Function parse serial String line derived in argument and introduce sended
  * changes in case of wrong input format informs user using serial. Serial line
  * must be send without line ending character.
@@ -200,10 +191,11 @@ void parseInput(String input) {
     if(input[1]=='1')
     {
       Serial.print("Starting spinning...\n");
+      rounds = roundsInput;
       velocityChange=velocityTarget;
       running=true;
     }
-    if(input[1]=='0')
+    else if(input[1]=='0')
     {
       Serial.print("Stopping spinning...\n");
       velocityChange=0;
@@ -240,18 +232,19 @@ void parseInput(String input) {
       Serial.println("Wrong input format, must be N.., where .. are all digits");
     }
   }
-  else if(input[0]<='S')
+  else if(input.length() == 1 && input[0]=='S')
   {
-    flushNumbers();
-    Serial.println("Flushing...");
-    velocityChange=0;
-    rounds = 0;
+    if(velocityToFlush > 990)
+      velocityToFlush = 990;
+    velocityTarget=velocityToFlush;
+    roundsInput=roundsToFlush;
+    setup();
   }
   else
   {
     Serial.print("Incorrect command:");
     Serial.println(  roundsToFlush);
-    Serial.println("  Correct command are:");
+    Serial.println("  Correct commands are:");
     Serial.println("  REV..., where ... - digits");
     Serial.println("  N.., where .. - digits");
     Serial.println("  P., where . is 0 or 1");
@@ -272,13 +265,50 @@ void setDisplay(byte img[]) {
 }
 
 /**
+ * During spinning set new value of delayTime variable according to
+ * actual value of willmill velocity.
+ */
+void changeDelay() {
+  if(velocity!=0)
+  {
+    unsigned short newDelay;
+    newDelay=(unsigned short)(10000)/(velocity);
+    if(newDelay > 3000)
+    {
+      delayTime = 3000;
+    }
+    else
+    {
+      delayTime=newDelay;
+    }
+  }
+}
+
+/**
  * Proceed one frame of animation using direction variable
  * to specify good table of LED's states, after sets delay
  * time using variable delayTime.
  */
-void dispFrame() {
-  setDisplay(frames[frame]);
+void dispFrame(short i) {
+  setDisplay(frames[i]);
   delay(delayTime);
+}
+
+/**
+ * Proceed one round in constans speed, the direction depends
+ * on value of variable right.
+ */
+void dispRound() {
+  if(right)
+  {
+    for(short i = 0; i < framesNumber; i++)
+      dispFrame(i);
+  }
+  else
+  {
+    for(short i = framesNumber-1; i >= 0; i--)
+      dispFrame(i);
+  }
 }
 
 /**
@@ -303,19 +333,6 @@ void changeVelocity() {
 }
 
 /**
- * During spinning set new value of delayTime variable according to
- * actual value of willmill velocity and number of animation frames.
- */
-void changeDelay() {
-  if(velocity!=0)
-  {
-    unsigned long newDelay;
-    newDelay=(unsigned long)1000/velocity*framesNumber;
-    delayTime=newDelay;
-  }
-}
-
-/**
  * In case of all rounds done, change velocityChange value to so,
  * willmill will going to stop spinning after this action, also if
  * velocity is already 0 and willmill is still running, function
@@ -336,45 +353,9 @@ void changeDirection() {
 }
 
 /**
- * In case of running willmill, change actual frame index to index
- * of next correct frame in animation. In case of one complete spin,
- * decrement number of rounds to do.
- */
-void nextFrame() {
-  if(velocity!=0)
-  {
-    if(right)
-    {
-      if(frame==framesNumber-1)
-      {
-        frame=0;
-        if(velocity==velocityChange)
-          rounds--;
-      }
-      else
-      {
-        frame++;
-      }
-    }
-    else
-    {
-      if(frame==0)
-      {
-        frame=framesNumber-1;
-        if(velocity==velocityChange)
-          rounds--;
-      }
-      else
-      {
-        frame--;
-      }
-    }
-  }
-}
-
-/**
  * Initialize serial connection with 9600 baud, then wake up displays,
- * sets intensity levels for LED and clear displays for start position.
+ * sets intensity levels for LED and clear displays for start position,
+ * after that set good value for start spinning from very start.
  */
 void setup()
 {
@@ -382,6 +363,17 @@ void setup()
   lc.shutdown(0,false);
   lc.setIntensity(0,2);
   lc.clearDisplay(0);
+
+  right = false;
+  rounds = roundsInput;
+  velocityChange = velocityTarget;
+  velocity = 0;
+  velocityStep = (0.1*velocityChange);
+  delayTime=(unsigned short)(10000)/(velocityChange);
+  if(delayTime > 3000)
+  {
+    delayTime = 3000;
+  }
 }
 
 /**
@@ -394,11 +386,21 @@ void loop()
   if (Serial.available() > 0) {
     String input=Serial.readString();
     parseInput(input);
-    
   }
-  dispFrame();
+  
+  if(velocity == 0)
+  {
+    setDisplay(frames[0]);
+    delay(2000);
+  }
+    
+  if(velocity != 0)
+    dispRound();
+  
+  if(velocity==velocityChange)
+    rounds--;
+  
   changeVelocity();
   changeDelay();
   changeDirection();
-  nextFrame();
 }
