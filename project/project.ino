@@ -4,21 +4,21 @@
 #define FRAMES_NUMBER 4
 #define VELOCITY_STEP 10
 
-/*-------------- Spinning control data ---------------*/
+/*--- Zmienne odpowiedzialne za kontrolę obrotów i wyświetlania ---*/
 
-LedControl lc = LedControl(12,11,10,1);  // Pins: DIN,CLK,CS of Display connected
-unsigned short delayTime = 1000;  // Initial delay between Frames
-boolean running = true; // If windmill should stop
-boolean right = false; // Spinning in right, when false spinning in left
-unsigned short velocity = 0;  // Rotation velocity (rounds per 10s)
-unsigned short rounds = TIMES; // Initial number of rounds
-unsigned short roundsInput = TIMES; // Initial number of rounds from input
-unsigned short velocityChange = REV; // Initial value of variable for velocity windmill current is going to reach
-unsigned short velocityTarget = REV; // Initial value of top value of velocity
-unsigned short velocityToFlush = REV; // Initial value of variable holds user decision about top velocity
-unsigned short roundsToFlush = TIMES; // Initial value of variable holds user decision about number of rounds
+LedControl lc = LedControl(12,11,10,1);  // Piny: DIN,CLK,CS
+unsigned short delayTime = 1000;  // Początkowe opóźnienie pomiędzy klatkami
+boolean running = true; // Oznacza stan, true gdy powinien się kręcić, false w przeciwnym wypadku
+boolean right = false; // Oznacza kierunek kręcenie
+unsigned short velocity = 0;  // Aktualna prędkość w obrotach na dziesięć sekund
+unsigned short rounds = TIMES; // Ilość obrotów, które w aktualnej pracy mają jeszcze zostać wykonane
+unsigned short roundsInput = TIMES; // Ilość obrotów, która ma zostać wykonana ze stałą prędkością
+unsigned short velocityChange = REV; // Prędkość w obrotach na dziesięć sekund, którą młynek powinien aktualnie osiągnąć
+unsigned short velocityTarget = REV; // Poczatkowa wartość maksymalnej wartości prędkości
+unsigned short velocityToFlush = REV; // Przechowuje ilość obrotów zadaną przez użytkownika przed samą podmianą
+unsigned short roundsToFlush = TIMES; // Przechowuje wartość prędkości zadaną przez użytkownika przed samą podmianą
 
-/*--------- Windmill animation frames data ----------- */
+/*-------- Zmienne odpowiedzialne za wyświetlane klatki ---------- */
 
 byte a1[]=
 {
@@ -32,7 +32,7 @@ byte a1[]=
     B00011000
 };
 
-byte a4[]=
+byte a2[]=
 {
     B10000000,
     B01000000,
@@ -44,7 +44,7 @@ byte a4[]=
     B00000001
 };
 
-byte a7[]=
+byte a3[]=
 {
     B00000000,
     B00000000,
@@ -56,7 +56,7 @@ byte a7[]=
     B00000000
 };
 
-byte a10[]=
+byte a4[]=
 {
     B00000001,
     B00000010,
@@ -70,13 +70,13 @@ byte a10[]=
 
 byte* frames[]=
 {
-  a1,a4,a7,a10
+  a1,a3,a4,a4
 };
 
-/*-----------Functions for parsing----------------*/
+/*----- Funkcje odpowiedzialne za interakcje z użytkownikiem -----*/
 
 /**
- * Check if sended string is correct formated integer value representation.
+ * Sprawdzenie czy napis w argumencie reprezentuje poprawnie sformatowaną liczbę.
  */
 boolean checkIfNumber(String lineToCheck) {
    for(byte i = 0; i < lineToCheck.length(); ++i)
@@ -86,9 +86,10 @@ boolean checkIfNumber(String lineToCheck) {
 }
 
 /**
- * Function parse serial String line derived in argument and introduce sended
- * changes in case of wrong input format informs user using serial. Serial line
- * must be send without line ending character.
+ * Funkcja ma za zadanie sprawdzić poprawnośc podanego w argumencie napisu,
+ * jeżeli napis był poprawny wykonuje odpowiednią akcję, jeżeli jego początek był
+ * poprawny informuje o niepoprawnej części końcowej, natomiast w przypadku podania
+ * napisu z niepoprawnym pierwszym znakiem, informuje o dozwolonych komendach.
 */
 void parseInput(String input) {
   if(input[0]=='P') {
@@ -148,10 +149,11 @@ void parseInput(String input) {
   }
 }
 
-/*-----------Functions for animation and loop----------------*/
+/*--- Główna funkcja programu oraz funkcje odpowiadające za animację ---*/
 
 /**
- * Take values in Arrays and Display them.
+ * Wyświetla wiersz po wierszu wartości zapamiętane w tablicy zmiennych byte
+ * podanej w argumencie.
  */
 void setDisplay(byte img[]) {
   for(int i = 0; i < 8; i++) {
@@ -160,9 +162,8 @@ void setDisplay(byte img[]) {
 }
 
 /**
- * Proceed one frame of animation using direction variable
- * to specify good table of LED's states, after sets delay
- * time using variable delayTime.
+ * Funkcja odpowiada za wyświetlenie klatki animacji, której numer został
+ * podany w argumencie, wraz z wykonaniem aktualnie ustalonego opóźnienia.
  */
 void dispFrame(short i) {
   setDisplay(frames[i]);
@@ -170,8 +171,9 @@ void dispFrame(short i) {
 }
 
 /**
- * During spinning set new value of delayTime variable according to
- * actual value of willmill velocity.
+ * Odpowiada za zmianę wartości opóźnienia na podstawie aktualnej wartości prędkości.
+ * W celu podtrzymania płynności animacji, przy zbyt niskiej wartości prędkości ustalana
+ * jest sztywna wartość 3000.
  */
 void changeDelay() {
   if(velocity!=0) {
@@ -187,8 +189,9 @@ void changeDelay() {
 }
 
 /**
- * Proceed one round in constans speed, the direction depends
- * on value of variable right.
+ * Funkcja przeprowadza jeden pełny obrót animacji wyświetlając
+ * wszystkie klatki animacji, wyświetlając je w kolejności zależnej
+ * od zmiennej right, która określa kierunek obrotu.
  */
 void dispRound() {
   
@@ -203,10 +206,11 @@ void dispRound() {
 }
 
 /**
- * Compare values of actual velocity and velocityChange, with holds value
- * that it is going to reach. Velocity raise or decrease in constant acceleration
- * value. After changing value, there is also check if velocity does not get out
- * of the borders if so, the velocityChange is set.
+ * Funkcja odpowiada za zmianę wartości prędkości w sytuacji, gdy aktualna prędkość
+ * nie jest równa prędkości docelowej, w zależności od tego czy animacja ma przyśpieszyć
+ * czy zwolnić, odpowiednia, stała wartość jest dodawana lub odejmowana od aktualnej prędkości
+ * przy czym w przypadku otrzymania wartości ujemnej jest ona korygowana do 0, natomiast wartość
+ * większa od docelowej skutkuje ustaleniem prędkości docelowej jako aktualna.
  */
 void changeVelocity() {
   if(velocity>velocityChange) {
@@ -222,11 +226,11 @@ void changeVelocity() {
 }
 
 /**
- * In case of all rounds done, change velocityChange value to so,
- * willmill will going to stop spinning after this action, also if
- * velocity is already 0 and willmill is still running, function
- * changes direction to opposite boolean value, set number of rounds
- * to number from input and velocityChange to number from input.
+ * Funkcja sprawdza ilość obrotów, które powinny zostać wykonane, jeżeli to zajdzie
+ * ustala prędkość docelową na 0, co oznacza rozpoczęcie zwalniania animacji, a w przypadku
+ * gdy animacja się zatrzyma, ale użytkownik nie zdecydował o jej zakończeniu, zmienia kierunek,
+ * ustala docelową prędkość na przechowywaną w pamięci wartość maksymalną obrotów oraz ustawia
+ * nową wartość obrotów do wykonania, jako wartość ilości obrotów przechowywaną w pamięci.
  */
 void changeDirection() {
   if(rounds == 0) {
@@ -240,8 +244,8 @@ void changeDirection() {
 }
 
 /**
- * Initialize serial connection with 9600 baud, then wake up displays,
- * sets intensity levels for LED and clear displays for start position.
+ * Funkcja odpowiada za ustalenie parametrów połączenia serial, ustalanie jasności
+ * LED, a także przypisanie początkowych wartości animacji.
  */
 void setup()
 {
@@ -260,9 +264,11 @@ void setup()
 }
 
 /**
- * Main loop of the program. First it parse data if user sended commands through
- * serial and tries to parse them if connect change some global variables. Then
- * starts to display frames and set changes during spinning.
+ * Główna pętla programu, na początku sprawdza czy użytkownik nie przesłał danych
+ * poprzez serial, jeżeli tak to w przypadku poprawności tych danych przeprowadza
+ * odpowiednią akcję, w przeciwnym wypadku informuje o błędzie poprzez serial. Następnie
+ * jeżeli prędkośc wiatraczka nie jest zerowa przeprowadza pełen obrót animacji, po czym
+ * uruchamia funkcje odpowiedzialne za zmianę parametrów animacji.
  */
 void loop()
 {
