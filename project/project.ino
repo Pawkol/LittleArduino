@@ -31,31 +31,7 @@ byte a1[]=
     B00011000,
     B00011000
 };
-/*
-byte a2[]=
-{
-    B00100000,
-    B00010000,
-    B00010000,
-    B00011000,
-    B00011000,
-    B00001000,
-    B00001000,
-    B00000100
-};
 
-byte a3[]=
-{
-    B01000000,
-    B00100000,
-    B00100000,
-    B00011000,
-    B00011000,
-    B00000100,
-    B00000100,
-    B00000010
-};
-*/
 byte a4[]=
 {
     B10000000,
@@ -67,31 +43,7 @@ byte a4[]=
     B00000010,
     B00000001
 };
-/*
-byte a5[]=
-{
-    B00000000,
-    B10000000,
-    B01100000,
-    B00011000,
-    B00011000,
-    B00000110,
-    B00000001,
-    B00000000
-};
 
-byte a6[]=
-{
-    B00000000,
-    B00000000,
-    B10000000,
-    B01111000,
-    B00011110,
-    B00000001,
-    B00000000,
-    B00000000
-};
-*/
 byte a7[]=
 {
     B00000000,
@@ -103,31 +55,7 @@ byte a7[]=
     B00000000,
     B00000000
 };
-/*
-byte a8[]=
-{
-    B00000000,
-    B00000000,
-    B00000001,
-    B00011110,
-    B01111000,
-    B10000000,
-    B00000000,
-    B00000000
-};
 
-byte a9[]=
-{
-    B00000000,
-    B00000001,
-    B00000110,
-    B00011000,
-    B00011000,
-    B01100000,
-    B10000000,
-    B00000000
-};
-*/
 byte a10[]=
 {
     B00000001,
@@ -139,34 +67,10 @@ byte a10[]=
     B01000000,
     B10000000
 };
-/*
-byte a11[]=
-{
-    B00000010,
-    B00000100,
-    B00000100,
-    B00011000,
-    B00011000,
-    B00100000,
-    B00100000,
-    B01000000
-};
 
-byte a12[]=
-{
-    B00000100,
-    B00001000,
-    B00001000,
-    B00011000,
-    B00011000,
-    B00010000,
-    B00010000,
-    B00100000
-};
-*/
 byte* frames[]=
 {
-  a1,a4,a7,a10 //a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12
+  a1,a4,a7,a10
 };
 
 /*-----------Functions for parsing----------------*/
@@ -223,12 +127,15 @@ void parseInput(String input) {
       Serial.println("Wrong input format, must be N.., where .. are all digits");
     }
   }
-  else if(input.length() == 1 && input[0]=='S') {
+  else if(input.length() >= 1 && input[0]=='S') {
     if(velocityToFlush > 990)
       velocityToFlush = 990;
     velocityTarget=velocityToFlush;
     roundsInput=roundsToFlush;
-    setup();
+    rounds=0;
+    velocityChange=0;
+    Serial.print("Applying new settings \n");
+    //setup();
   }
   else {
     Serial.print("Incorrect command:");
@@ -297,7 +204,7 @@ void dispRound() {
 
 /**
  * Compare values of actual velocity and velocityChange, with holds value
- * that will is going to reach. Velocity raise of fall in constans acceleration
+ * that it is going to reach. Velocity raise or decrease in constant acceleration
  * value. After changing value, there is also check if velocity does not get out
  * of the borders if so, the velocityChange is set.
  */
