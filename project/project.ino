@@ -6,17 +6,66 @@
 
 /*--- Zmienne odpowiedzialne za kontrolę obrotów i wyświetlania ---*/
 
-LedControl lc = LedControl(12,11,10,1);  // Piny: DIN,CLK,CS
-unsigned short delayTime = 1000;  // Początkowe opóźnienie pomiędzy klatkami
-boolean running = true; // Oznacza stan, true gdy powinien się kręcić, false w przeciwnym wypadku
-boolean right = false; // Oznacza kierunek kręcenie
-unsigned short velocity = 0;  // Aktualna prędkość w obrotach na dziesięć sekund
-unsigned short rounds = TIMES; // Ilość obrotów, które w aktualnej pracy mają jeszcze zostać wykonane
-unsigned short roundsInput = TIMES; // Ilość obrotów, która ma zostać wykonana ze stałą prędkością
-unsigned short velocityChange = REV; // Prędkość w obrotach na dziesięć sekund, którą młynek powinien aktualnie osiągnąć
-unsigned short velocityTarget = REV; // Poczatkowa wartość maksymalnej wartości prędkości
-unsigned short velocityToFlush = REV; // Przechowuje ilość obrotów zadaną przez użytkownika przed samą podmianą
-unsigned short roundsToFlush = TIMES; // Przechowuje wartość prędkości zadaną przez użytkownika przed samą podmianą
+/**
+ * Piny: DIN,CLK,CS
+ */
+LedControl lc = LedControl(12,11,10,1); 
+
+/**
+ * Początkowe opóźnienie pomiędzy klatkami
+ */
+unsigned short delayTime = 1000;
+
+/**
+ * Oznacza stan wiatraka. True gdy powinien się kręcić, false w
+ * przeciwnym wypadku 
+ */
+boolean running = true; 
+
+/**
+ * Oznacza kierunek kręcenia
+ */
+boolean right = false;
+
+/**
+ * Aktualna prędkość w obrotach na dziesięć sekund
+ */
+unsigned short velocity = 0;
+
+/**
+ * Ilość obrotów ze stałą prędkością pozostałych do wykonania w 
+ * obecnym cyklu
+ */
+unsigned short rounds = TIMES;
+
+/**
+ * Ilość obrotów ze stałą prędkością, która ma zostać wykonana w 
+ * każdym cyklu
+ */
+unsigned short roundsInput = TIMES;
+
+/**
+ * Prędkość w obrotach na dziesięć sekund, którą wiatrak powinien
+ * aktualnie osiągnąć
+ */
+unsigned short velocityChange = REV;
+
+/**
+ * Docelowa wartość prędkości obrotowej
+ */
+unsigned short velocityTarget = REV;
+
+/**
+ * Przechowuje ilość obrotów zadaną przez użytkownika komendą REV
+ */
+unsigned short velocityToFlush = REV;
+
+/**
+ * Przechowuje wartość prędkości zadaną przez użytkownika komendą N
+ */
+unsigned short roundsToFlush = TIMES;
+
+
 
 /*-------- Zmienne odpowiedzialne za wyświetlane klatki ---------- */
 
@@ -76,7 +125,8 @@ byte* frames[]=
 /*----- Funkcje odpowiedzialne za interakcje z użytkownikiem -----*/
 
 /**
- * Sprawdzenie czy napis w argumencie reprezentuje poprawnie sformatowaną liczbę.
+ * Sprawdzenie czy napis w argumencie reprezentuje poprawnie 
+ * sformatowaną liczbę.
  */
 boolean checkIfNumber(String lineToCheck) {
    for(byte i = 0; i < lineToCheck.length(); ++i)
@@ -86,10 +136,11 @@ boolean checkIfNumber(String lineToCheck) {
 }
 
 /**
- * Funkcja ma za zadanie sprawdzić poprawnośc podanego w argumencie napisu,
- * jeżeli napis był poprawny wykonuje odpowiednią akcję, jeżeli jego początek był
- * poprawny informuje o niepoprawnej części końcowej, natomiast w przypadku podania
- * napisu z niepoprawnym pierwszym znakiem, informuje o dozwolonych komendach.
+ * Funkcja ma za zadanie sprawdzić poprawność podanego w 
+ * argumencie napisu. Jeżeli był on poprawny, wykonuje odpowiednią
+ * akcję. Jeżeli jego początek był poprawny, informuje o niepoprawnej 
+ * części końcowej. W przypadku podania napisu z niepoprawnym 
+ * pierwszym znakiem, informuje o dozwolonych komendach.
 */
 void parseInput(String input) {
   if(input[0]=='P') {
@@ -152,8 +203,8 @@ void parseInput(String input) {
 /*--- Główna funkcja programu oraz funkcje odpowiadające za animację ---*/
 
 /**
- * Wyświetla wiersz po wierszu wartości zapamiętane w tablicy zmiennych byte
- * podanej w argumencie.
+ * Wyświetla wiersz po wierszu wartości zapamiętane w tablicy 
+ * zmiennych byte podanej w argumencie.
  */
 void setDisplay(byte img[]) {
   for(int i = 0; i < 8; i++) {
@@ -162,8 +213,9 @@ void setDisplay(byte img[]) {
 }
 
 /**
- * Funkcja odpowiada za wyświetlenie klatki animacji, której numer został
- * podany w argumencie, wraz z wykonaniem aktualnie ustalonego opóźnienia.
+ * Funkcja odpowiada za wyświetlenie klatki animacji, której numer
+ * został podany w argumencie, wraz z wykonaniem aktualnie
+ * ustalonego opóźnienia.
  */
 void dispFrame(short i) {
   setDisplay(frames[i]);
@@ -171,9 +223,9 @@ void dispFrame(short i) {
 }
 
 /**
- * Odpowiada za zmianę wartości opóźnienia na podstawie aktualnej wartości prędkości.
- * W celu podtrzymania płynności animacji, przy zbyt niskiej wartości prędkości ustalana
- * jest sztywna wartość 3000.
+ * Odpowiada za zmianę wartości opóźnienia na podstawie aktualnej 
+ * wartości prędkości. W celu podtrzymania płynności animacji, przy 
+ * zbyt niskiej wartości prędkości ustalane jest opóźnienie 3000.
  */
 void changeDelay() {
   if(velocity!=0) {
@@ -189,9 +241,9 @@ void changeDelay() {
 }
 
 /**
- * Funkcja przeprowadza jeden pełny obrót animacji wyświetlając
- * wszystkie klatki animacji, wyświetlając je w kolejności zależnej
- * od zmiennej right, która określa kierunek obrotu.
+ * Funkcja przeprowadza jedną animację pełnego obrotu wyświetlając
+ * wszystkie klatki animacji w kolejności zależnej od zmiennej right,
+ * która określa kierunek obrotu.
  */
 void dispRound() {
   
@@ -206,11 +258,14 @@ void dispRound() {
 }
 
 /**
- * Funkcja odpowiada za zmianę wartości prędkości w sytuacji, gdy aktualna prędkość
- * nie jest równa prędkości docelowej, w zależności od tego czy animacja ma przyśpieszyć
- * czy zwolnić, odpowiednia, stała wartość jest dodawana lub odejmowana od aktualnej prędkości
- * przy czym w przypadku otrzymania wartości ujemnej jest ona korygowana do 0, natomiast wartość
- * większa od docelowej skutkuje ustaleniem prędkości docelowej jako aktualna.
+ * Funkcja odpowiada za zmianę wartości prędkości w sytuacji, 
+ * gdy aktualna prędkość nie jest równa prędkości docelowej.
+ * W zależności od tego czy animacja ma przyśpieszyć czy 
+ * zwolnić, odpowiednia stała wartość jest dodawana lub 
+ * odejmowana od aktualnej prędkości. W przypadku otrzymania
+ * wartości ujemnej, jest ona korygowana do 0, natomiast 
+ * wartość większa od docelowej skutkuje ustaleniem prędkości
+ * docelowej jako aktualna.
  */
 void changeVelocity() {
   if(velocity>velocityChange) {
@@ -226,11 +281,14 @@ void changeVelocity() {
 }
 
 /**
- * Funkcja sprawdza ilość obrotów, które powinny zostać wykonane, jeżeli to zajdzie
- * ustala prędkość docelową na 0, co oznacza rozpoczęcie zwalniania animacji, a w przypadku
- * gdy animacja się zatrzyma, ale użytkownik nie zdecydował o jej zakończeniu, zmienia kierunek,
- * ustala docelową prędkość na przechowywaną w pamięci wartość maksymalną obrotów oraz ustawia
- * nową wartość obrotów do wykonania, jako wartość ilości obrotów przechowywaną w pamięci.
+ * Funkcja sprawdza ilość obrotów, które powinny zostać wykonane.
+ * Po wykonaniu założonej ilości obrotów, ustala prędkość 
+ * docelową na 0, co oznacza rozpoczęcie zwalniania animacji.
+ * W przypadku, gdy animacja się zatrzyma, ale użytkownik nie 
+ * zdecydował o jej zakończeniu, zmienia kierunek, ustala docelową
+ * prędkość na przechowywaną w pamięci wartość maksymalną obrotów
+ * oraz ustawia nową wartość obrotów do wykonania, jako wartość 
+ * ilości obrotów przechowywaną w pamięci.
  */
 void changeDirection() {
   if(rounds == 0) {
@@ -244,8 +302,9 @@ void changeDirection() {
 }
 
 /**
- * Funkcja odpowiada za ustalenie parametrów połączenia serial, ustalanie jasności
- * LED, a także przypisanie początkowych wartości animacji.
+ * Funkcja inicjująca odpowiada za ustalenie parametrów połączenia
+ * serial, ustalanie jasności LED, a także przypisanie początkowych 
+ * wartości animacji.
  */
 void setup()
 {
@@ -264,11 +323,12 @@ void setup()
 }
 
 /**
- * Główna pętla programu, na początku sprawdza czy użytkownik nie przesłał danych
- * poprzez serial, jeżeli tak to w przypadku poprawności tych danych przeprowadza
- * odpowiednią akcję, w przeciwnym wypadku informuje o błędzie poprzez serial. Następnie
- * jeżeli prędkośc wiatraczka nie jest zerowa przeprowadza pełen obrót animacji, po czym
- * uruchamia funkcje odpowiedzialne za zmianę parametrów animacji.
+ * Główna pętla programu.
+ * Na początku sprawdza czy użytkownik nie przesłał danych przez 
+ * serial, jeżeli tak to sprawdza ich poprawność i wywołuje żądaną 
+ * akcję lub informuje o błędzie. Gdy prędkość wiatraczka nie jest 
+ * zerowa, przeprowadza animację pełnego obrotu, po czym uruchamia 
+ * funkcje odpowiedzialne za zmianę parametrów animacji.
  */
 void loop()
 {
